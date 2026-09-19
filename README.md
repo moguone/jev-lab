@@ -12,8 +12,6 @@ TypeSafe AI の System One モデル **Jev** を、小さなアプリで実際�
 | [maze-runner](apps/maze-runner/) | 迷路チェイスゲームの進行方向を Jev に裁定させて自動クリアを目指す | Choice 一括 vs Noul+Score fan-out、リアルタイム進行でのレイテンシの影響、confidence によるフォールバック |
 | [twenty-questions](apps/twenty-questions/) | 「20 の質問」形式で、プレイヤーが思い浮かべた動物を Jev の確率だけで当てる | Noul の確率を尤度としてベイズ合成、確率を 0/1 に丸めた場合との比較、キャリブレーション、Score による自由回答の解釈 |
 
-![maze-runner](apps/maze-runner/docs/screenshot.jpg)
-
 ## セットアップ
 
 API キーは [TypeSafe Console](https://console.typesafe.ai) で発行し、リポジトリ直下の `.env` に置く。全アプリがこのファイルを読む。
@@ -27,7 +25,7 @@ cp .env.example .env   # TYPESAFE_API_KEY を記入
 ## アプリを追加するとき
 
 - `apps/<name>/` に、そのディレクトリだけで完結する形で置く（`package.json` と README を持たせる）。
-- README にはサンプル画面のスクリーンショットを載せる。実測値が写らないよう MOCK などダミー応答の状態で撮る。
+- そのアプリの README にサンプル画面のスクリーンショットを載せる（このルートの README には載せない）。実測値が写らないよう MOCK などダミー応答の状態で撮る。
 - API キーはサーバ側だけで扱い、ブラウザやリポジトリに出さない。
 - 起動スクリプトは `--env-file-if-exists=../../.env` でルートの `.env` を読む。
 
