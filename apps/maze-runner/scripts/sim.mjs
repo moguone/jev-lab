@@ -1,7 +1,7 @@
 // API を使わないベースライン戦略をヘッドレスで回し、エンジンの健全性と難易度を確認する。
 // 使い方: node scripts/sim.mjs [episodes] [ghosts]
 import { DIRS, Game, MAP, mulberry32 } from '../public/game.js';
-import { directionFeatures, heuristicChoice } from '../public/agent.js';
+import { directionFeatures, heuristicChoice, tacticalHeuristic } from '../public/agent.js';
 
 const episodes = Number(process.argv[2] ?? 20);
 const ghosts = Number(process.argv[3] ?? 4);
@@ -32,22 +32,25 @@ if (widths.size !== 1) throw new Error(`MAP の行幅が不揃い: ${[...widths]
 }
 
 for (const [name, pick] of [
+  ['heuristic-tactical', (game) => tacticalHeuristic(game)],
   ['heuristic', (game) => heuristicChoice(game, directionFeatures(game))],
   ['random', (game, rand) => game.legalDirs()[Math.floor(rand() * game.legalDirs().length)]],
 ]) {
   const tally = { win: 0, lost: 0, timeout: 0 };
   let ticks = 0;
   let eaten = 0;
+  let score = 0;
   for (let seed = 1; seed <= episodes; seed++) {
     const game = new Game({ seed, ghosts });
     const rand = mulberry32(seed * 7919);
     while (!game.over) game.step(pick(game, rand));
     tally[game.result]++;
     ticks += game.tick;
+    score += game.score;
     eaten += 1 - game.remaining() / game.totalPellets;
   }
   console.log(
-    `${name.padEnd(10)} win=${tally.win} lost=${tally.lost} timeout=${tally.timeout}` +
-      ` avgTicks=${Math.round(ticks / episodes)} avgCleared=${Math.round((eaten / episodes) * 100)}%`,
+    `${name.padEnd(19)} win=${tally.win} lost=${tally.lost} timeout=${tally.timeout}` +
+      ` avgScore=${Math.round(score / episodes)} avgTicks=${Math.round(ticks / episodes)} avgCleared=${Math.round((eaten / episodes) * 100)}%`,
   );
 }

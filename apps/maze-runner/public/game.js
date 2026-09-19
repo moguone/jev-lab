@@ -228,8 +228,13 @@ export class Game {
     g.y += DIRS[chosen][1];
   }
 
+  // 'scatter' = 各自の担当コーナーへ散開中、'chase' = ランナーを追跡中
+  ghostMode() {
+    return this.tick % CYCLE_TICKS < SCATTER_TICKS ? 'scatter' : 'chase';
+  }
+
   ghostTarget(g) {
-    if (this.tick % CYCLE_TICKS < SCATTER_TICKS) return g.corner;
+    if (this.ghostMode() === 'scatter') return g.corner;
     const runner = this.runner;
     const [dx, dy] = DIRS[runner.dir];
     switch (g.name) {
