@@ -1,0 +1,99 @@
+:root {
+  --bg: #0b0d1a;
+  --panel: #14172b;
+  --line: #262a48;
+  --text: #e8eaf6;
+  --muted: #8a90b8;
+  --accent: #5eead4;
+  --blue: #6d4aff;
+  --good: #4ade80;
+  --bad: #ff6b6b;
+  --warn: #fde68a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Hiragino Sans", sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+h1 { margin: 0; font-size: 18px; color: var(--accent); }
+h1 span { margin-left: 10px; font-size: 12px; font-weight: 400; color: var(--muted); }
+h2 { margin: 22px 0 8px; font-size: 13px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+h2 small { text-transform: none; letter-spacing: 0; }
+aside h2:first-child { margin-top: 0; }
+
+.badges { display: flex; gap: 6px; }
+.badge { padding: 4px 10px; border-radius: 999px; font-size: 12px; background: var(--line); white-space: nowrap; }
+.badge.live { background: #12391f; color: var(--good); }
+.badge.mock { background: #3d2f0a; color: var(--warn); }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 24px;
+  padding: 20px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 22px; min-height: 230px; }
+.card .step { font-size: 12px; color: var(--muted); }
+.card .question { margin: 6px 0 4px; font-size: 24px; font-weight: 600; }
+.card .sub { margin: 0 0 16px; font-size: 12px; color: var(--muted); }
+.card .guess { color: var(--accent); }
+
+.answers { display: flex; flex-wrap: wrap; gap: 8px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.row input:not([type=radio]), .row select { flex: 1 1 200px; }
+
+button, input:not([type=radio]), select {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+button { cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--blue); border-color: var(--blue); }
+.answers button { flex: 1 1 96px; padding: 12px 8px; background: #1b1f3a; }
+
+.note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.note.error { color: var(--bad); }
+
+.history { margin: 0; padding: 0; list-style: none; }
+.history li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.history .n, .history .gain { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.history .free { display: block; font-size: 12px; color: var(--muted); }
+.pill { padding: 1px 8px; border-radius: 999px; font-size: 12px; background: var(--line); }
+.pill.yes { background: #12391f; color: var(--good); }
+.pill.no { background: #3d1518; color: var(--bad); }
+
+.bars div { display: grid; grid-template-columns: 120px minmax(0, 1fr) 52px; gap: 8px; align-items: center; padding: 2px 0; }
+.bars .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bars .name.out { color: var(--muted); text-decoration: line-through; }
+.bars .track { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.bars .fill { height: 100%; background: var(--accent); transition: width .25s; }
+.bars .pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+th { font-size: 11px; font-weight: 400; color: var(--muted); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.clash td { background: #2a1a22; }
