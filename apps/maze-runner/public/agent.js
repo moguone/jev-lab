@@ -4,15 +4,64 @@
 
 import { DIRS, OPPOSITE, key } from './game.js';
 
+// id は保存済みリプレイやベンチの引数で使うので変えない。画面には label / short / desc を出す
 export const STRATEGIES = {
-  'jev-features': { label: 'Jev: Choice × 特徴量ラベル', usesApi: true },
-  'jev-composite': { label: 'Jev: Noul+Score fan-out → コードで合成', usesApi: true },
-  'jev-ascii': { label: 'Jev: Choice × ASCII 盤面そのまま', usesApi: true },
-  'jev-tactical-fanout': { label: 'Jev: 戦術ラベル × Score fan-out → コードで合成', usesApi: true },
-  'jev-tactical-choice': { label: 'Jev: 戦術ラベル × Choice', usesApi: true },
-  heuristic: { label: 'ベースライン: ヒューリスティック (API なし)', usesApi: false },
-  'heuristic-tactical': { label: 'ベースライン: 戦術ヒューリスティック (API なし)', usesApi: false },
-  random: { label: 'ベースライン: ランダム (API なし)', usesApi: false },
+  'jev-tactical-fanout': {
+    group: 'Jev に判断させる',
+    label: 'Jev【スコア重視】状況を段階評価 → コードが合成',
+    short: 'Jev スコア重視',
+    desc: 'ゴーストの向きや逃げ場の広さなどの戦術情報を渡し、方向ごとに「危険度」「得点の見込み」を Jev に段階評価させる。どの段階を何点と見るかはコードが決めるので、ゴーストを積極的に食べに行く高得点狙いの調整にしてある。',
+    usesApi: true,
+  },
+  'jev-tactical-choice': {
+    group: 'Jev に判断させる',
+    label: 'Jev【おまかせ・省トークン】状況を見て Jev が 1 問で決める',
+    short: 'Jev おまかせ',
+    desc: '同じ戦術情報を渡し、優先順位を書いた 1 問で進む方向を Jev に選ばせる。危険と得点の天秤まで Jev 任せになる。トークンはスコア重視の約半分で済むが、ゴーストを追う場面が少なく得点は伸びにくい。生き残りやすさはスコア重視と同程度。',
+    usesApi: true,
+  },
+  'jev-composite': {
+    group: '比較用（旧方式・対照実験）',
+    label: 'Jev【旧方式】距離だけ渡す → コードが合成',
+    short: 'Jev 旧・合成',
+    desc: '最寄りのペレットとゴーストまでの距離ラベルだけを渡す初期の方式。方向ごとに危険か・旨味があるかを聞き、コードで合成する。戦術情報を足す効果を見るための比較用。',
+    usesApi: true,
+  },
+  'jev-features': {
+    group: '比較用（旧方式・対照実験）',
+    label: 'Jev【旧方式】距離だけ渡す → Jev が 1 問で決める',
+    short: 'Jev 旧・1問',
+    desc: '最寄りのペレットとゴーストまでの距離ラベルだけを渡し、1 問で方向を選ばせる初期の方式。比較用。',
+    usesApi: true,
+  },
+  'jev-ascii': {
+    group: '比較用（旧方式・対照実験）',
+    label: 'Jev【対照実験】盤面の文字列を丸ごと渡す',
+    short: 'Jev 盤面丸投げ',
+    desc: '前処理をせず、盤面をテキストのまま渡す。Jev は距離の読み取りや数え上げが苦手なため、ほぼ進めない。コードで前処理する価値を確かめるための対照実験。',
+    usesApi: true,
+  },
+  'heuristic-tactical': {
+    group: 'Jev を使わない（コードだけ）',
+    label: 'コードのみ【戦術版】Jev と同じ情報を数値のまま使う',
+    short: 'コード 戦術版',
+    desc: 'Jev のスコア重視・おまかせと同じ戦術情報を、ラベルにせず数値のまま点数化して進む。Jev 戦略の比較対象であり、confidence が低いときのフォールバック先でもある。API は呼ばない。',
+    usesApi: false,
+  },
+  heuristic: {
+    group: 'Jev を使わない（コードだけ）',
+    label: 'コードのみ【基本版】距離だけで判断',
+    short: 'コード 基本版',
+    desc: '最寄りのペレットとゴーストまでの距離だけで点数化する単純なルール。旧方式の Jev 戦略の比較対象。API は呼ばない。',
+    usesApi: false,
+  },
+  random: {
+    group: 'Jev を使わない（コードだけ）',
+    label: 'コードのみ【ランダム】',
+    short: 'ランダム',
+    desc: '進める方向から無作為に選ぶ。何も考えない場合の下限。',
+    usesApi: false,
+  },
 };
 
 // start から blocked を通らずに、isTarget を満たす最寄りマスまでの歩数。start 自身は 1 歩目。
@@ -118,10 +167,50 @@ function nextJunction(game, from, start) {
   }
 }
 
+const ESCAPE_CAP = 30;
+const ESCAPE_MARGIN = 1; // ゴーストより何 tick 早く着けば安全とみなすか
+
+// 各マスに危険なゴーストが最短で何 tick 後に来うるか。巣で待機中のものは出口から、
+// 怯え中のものは怯えが解けてから動き出すとして織り込む
+function ghostArrival(game) {
+  const arrival = new Map();
+  for (const g of game.ghosts) {
+    const from = g.inHouse ? game.exit : [g.x, g.y];
+    const delay = g.inHouse ? Math.max(0, g.releaseAt - game.tick) + 2 : g.frightened ? game.frightTimer : 0;
+    for (const [k, dist] of distanceMap(game, from, null)) {
+      const t = delay + dist / GHOST_SPEED;
+      if (t < (arrival.get(k) ?? Infinity)) arrival.set(k, t);
+    }
+  }
+  return arrival;
+}
+
+// start へ踏み出したあと、ゴーストより先に着けるマスだけを伝って行ける範囲の広さ。狭いほど袋小路
+function escapeRoom(game, start, arrival, margin = ESCAPE_MARGIN) {
+  const safe = (k, t) => t + margin < (arrival.get(k) ?? Infinity);
+  if (!safe(key(start[0], start[1]), 1)) return 0;
+  const seen = new Set([key(start[0], start[1])]);
+  let frontier = [start];
+  for (let t = 2; frontier.length && seen.size < ESCAPE_CAP; t++) {
+    const next = [];
+    for (const [x, y] of frontier) {
+      for (const [dx, dy] of Object.values(DIRS)) {
+        const k = key(x + dx, y + dy);
+        if (seen.has(k) || !game.walkable(x + dx, y + dy) || !safe(k, t)) continue;
+        seen.add(k);
+        next.push([x + dx, y + dy]);
+      }
+    }
+    frontier = next;
+  }
+  return Math.min(ESCAPE_CAP, seen.size);
+}
+
 export function tacticalFeatures(game, feats = directionFeatures(game)) {
   const { runner } = game;
   const here = key(runner.x, runner.y);
   const dangerous = game.ghosts.filter((g) => !g.inHouse && !g.frightened);
+  const arrival = ghostArrival(game);
   const out = {};
   for (const [d, f] of Object.entries(feats)) {
     const start = [runner.x + DIRS[d][0], runner.y + DIRS[d][1]];
@@ -149,7 +238,7 @@ export function tacticalFeatures(game, feats = directionFeatures(game)) {
     let pelletCount = 0;
     for (const [k, dist] of map) if (dist < 10 && (game.pellets.has(k) || game.powers.has(k))) pelletCount++;
 
-    out[d] = { ...f, approaching, cutOff, pelletCount };
+    out[d] = { ...f, approaching, cutOff, pelletCount, room: escapeRoom(game, start, arrival) };
   }
   const around = distanceMap(game, [runner.x, runner.y], null);
   const ghostsNearby = dangerous.filter((g) => (around.get(key(g.x, g.y)) ?? Infinity) <= 6).length;
@@ -157,7 +246,7 @@ export function tacticalFeatures(game, feats = directionFeatures(game)) {
 }
 
 // 100 シードのオフライン探索で決めた重み（scripts/sim.mjs で再確認できる）
-export const TACTICAL_WEIGHTS = { chase: 100, chaseReach: 2, lure: 10, lureCount: 1, save: 20, saveRadius: 3 };
+export const TACTICAL_WEIGHTS = { chase: 130, chaseReach: 2, lure: 10, lureCount: 1, save: 30, saveRadius: 4, trapped: 120, tight: 40, narrow: 0 };
 
 // 戦術特徴量を使うヒューリスティック。Jev に同じ情報を渡す前に、情報自体の価値を API なしで確かめるためのもの
 export function tacticalHeuristic(game, tactical = tacticalFeatures(game), w = TACTICAL_WEIGHTS) {
@@ -171,6 +260,7 @@ export function tacticalHeuristic(game, tactical = tacticalFeatures(game), w = T
     else if (f.ghostDist <= 4) u -= f.approaching ? 40 : 10;
     else if (f.ghostDist <= 7) u -= f.approaching ? 10 : 2;
     if (f.cutOff && f.ghostDist <= 12) u -= 35;
+    u -= f.room < 4 ? w.trapped : f.room < 10 ? w.tight : f.room < 20 ? w.narrow : 0;
     if (f.edibleDist * w.chaseReach < game.frightTimer) u += w.chase / f.edibleDist;
     if (f.pelletDist !== Infinity) u += 10 / f.pelletDist + f.pelletCount * 0.3;
     if (f.powerDist !== Infinity) {
@@ -259,6 +349,7 @@ const VALUE_LEVELS = [
 
 // ---- 戦術ラベル戦略 ---------------------------------------------------------
 
+const roomLabel = (n) => (n < 4 ? 'trapped' : n < 10 ? 'tight' : 'open');
 const countLabel = (n) => (n === 0 ? 'none' : n <= 3 ? 'few' : n <= 9 ? 'some' : 'many');
 
 function tacticalState(game, { dirs, ghostsNearby }) {
@@ -269,6 +360,8 @@ function tacticalState(game, { dirs, ghostsNearby }) {
       ghost_threat: threat,
       ghost_approaching: threat !== 'none' && f.approaching,
       cut_off_risk: f.cutOff && f.ghostDist <= 12,
+      // ゴーストより先に着けるマスだけを伝って逃げられる範囲。trapped はほぼ袋小路
+      escape_room: roomLabel(f.room),
       nearest_pellet: nearLabel(f.pelletDist),
       pellets_this_way: countLabel(f.pelletCount),
       power_pellet: nearLabel(f.powerDist),
@@ -288,13 +381,13 @@ function tacticalState(game, { dirs, ghostsNearby }) {
 }
 
 const DANGER_LEVELS = [
-  'No dangerous ghost this way: ghost_threat is none',
-  'A ghost is this way but it is not approaching, and ghost_threat is medium or high',
-  'A ghost at medium ghost_threat is approaching',
-  'A ghost at high ghost_threat is approaching, or cut_off_risk is true',
-  'ghost_threat is deadly: the runner will very likely be caught this way',
+  'No danger: ghost_threat is none and escape_room is open',
+  'A ghost is this way but it is not approaching, and escape_room is open',
+  'A ghost at medium ghost_threat is approaching, and escape_room is open',
+  'escape_room is tight, or a ghost at high ghost_threat is approaching, or cut_off_risk is true',
+  'escape_room is trapped, or ghost_threat is deadly: the runner will very likely be caught this way',
 ];
-const DANGER_PENALTY = [0, 2, 10, 40, 100];
+const DANGER_PENALTY = [0, 2, 10, 40, 120];
 
 const REWARD_LEVELS = [
   'Nothing to collect this way: nearest_pellet is none and edible_ghost is none',
@@ -308,13 +401,14 @@ const REWARD_LEVELS = [
   'edible_ghost is near: a ghost can be eaten this way soon',
   'edible_ghost is adjacent: a ghost can be eaten this way right now',
 ];
-const REWARD_VALUE = [0, 1.5, 3, 5, 7, 10, 25, 30, 50, 90];
-const WASTE_PENALTY = 20;
+const REWARD_VALUE = [0, 1.5, 3, 5, 7, 10, 25, 25, 55, 120];
+const WASTE_PENALTY = 30;
 
 const TACTICAL_INSTRUCTIONS = {
   task: 'Choose the direction the runner should move next to reach the highest score without losing a life.',
   priorities: [
-    'Never choose a direction whose ghost_threat is deadly.',
+    'Never choose a direction whose ghost_threat is deadly or whose escape_room is trapped.',
+    'Avoid a direction whose escape_room is tight when another direction is open.',
     'Avoid a direction whose cut_off_risk is true, or whose ghost_threat is high with ghost_approaching true.',
     'A ghost that is not approaching is much less dangerous than one that is approaching.',
     'If a direction has an edible_ghost that is not none, go that way: eating ghosts is worth the most.',
@@ -338,7 +432,7 @@ function tacticalRequest(strategy, game, feats) {
   for (const d of dirs) {
     questions[`danger_${d}`] = {
       type: 'score',
-      instructions: `How dangerous is moving ${d}? Judge only from ghost_threat, ghost_approaching and cut_off_risk in \`directions.${d}\`.`,
+      instructions: `How dangerous is moving ${d}? Judge only from ghost_threat, ghost_approaching, cut_off_risk and escape_room in \`directions.${d}\`.`,
       criteria: DANGER_LEVELS,
     };
     questions[`reward_${d}`] = {

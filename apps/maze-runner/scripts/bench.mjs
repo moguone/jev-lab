@@ -79,6 +79,7 @@ console.table(
     const r = rows.filter((x) => x.strategy === s);
     return {
       strategy: s,
+      name: STRATEGIES[s].short,
       episodes: r.length,
       wins: r.filter((x) => x.result === 'win').length,
       avgScore: Math.round(mean(r.map((x) => x.score))),

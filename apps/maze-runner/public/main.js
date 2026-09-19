@@ -32,7 +32,11 @@ const ui = {
   strategy: $('strategy'), timing: $('timing'), tickMs: $('tickMs'), ghosts: $('ghosts'),
   seed: $('seed'), episodes: $('episodes'), gateOn: $('gateOn'), gate: $('gate'), price: $('price'),
 };
-for (const [id, s] of Object.entries(STRATEGIES)) ui.strategy.add(new Option(s.label, id));
+for (const [id, s] of Object.entries(STRATEGIES)) {
+  let group = [...ui.strategy.children].find((g) => g.label === s.group);
+  if (!group) ui.strategy.append((group = Object.assign(document.createElement('optgroup'), { label: s.group })));
+  group.append(new Option(s.label, id));
+}
 
 let game;
 let rec; // 現在のエピソードの記録。シード + 各 tick の手があれば盤面は完全に再現できる
@@ -515,7 +519,7 @@ function recordResult() {
   tr.innerHTML =
     '<td></td>' +
     Object.entries(row)
-      .map(([k, v]) => `<td${k === 'result' ? ` class="${esc(v)}"` : ''}>${k === 'cleared' ? `${v}%` : esc(v)}</td>`)
+      .map(([k, v]) => `<td${k === 'result' ? ` class="${esc(v)}"` : ''}>${k === 'cleared' ? `${v}%` : esc(k === 'strategy' ? STRATEGIES[v].short : v)}</td>`)
       .join('');
   tr.cells[0].append(entry.button);
 }
@@ -674,6 +678,7 @@ function drawGhost(g, ghost, t, now) {
 // ---- 初期化 --------------------------------------------------------------
 
 function syncOutputs() {
+  $('strategyDesc').textContent = STRATEGIES[ui.strategy.value].desc;
   $('tickMsOut').textContent = `${ui.tickMs.value} ms`;
   $('gateOut').textContent = Number(ui.gate.value).toFixed(2);
 }
@@ -737,6 +742,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 for (const k of ['strategy', 'ghosts', 'seed']) ui[k].addEventListener('change', () => !running && !replay && newGame());
+ui.strategy.addEventListener('change', syncOutputs);
 ui.tickMs.addEventListener('input', syncOutputs);
 ui.gate.addEventListener('input', syncOutputs);
 try {
