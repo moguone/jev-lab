@@ -5,7 +5,9 @@
 
 ![Maze Runner の画面](docs/screenshot.jpg)
 
-*MOCK モード（API キーなし・回答はランダム）での画面。表示されているレイテンシや confidence はダミー値で、Jev の実測値ではない。*
+![リプレイと裁定インスペクタ](docs/screenshot-replay.jpg)
+
+*上: 全体（リプレイ中）。下: リプレイ操作と裁定インスペクタ。どちらも MOCK モード（API キーなし・回答はランダム）での画面で、表示されているレイテンシ・confidence・Jev の回答はダミー値であり、Jev の実測値ではない。*
 
 「制御フローとルールはコード、意味的な判断だけ Jev」という公式の設計方針（Harness Engineering / Real-time applications）を、
 レイテンシ・トークン量・confidence を計測しながら確かめるための検証アプリ。
