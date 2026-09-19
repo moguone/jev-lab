@@ -1,0 +1,11 @@
+{
+  "name": "maze-runner",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.9" },
+  "scripts": {
+    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=.env server.mjs",
+    "sim": "node scripts/sim.mjs",
+    "bench": "node scripts/bench.mjs"
+  }
+}
