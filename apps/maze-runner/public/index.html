@@ -26,6 +26,47 @@
         <button id="btnStart" class="primary">▶ スタート</button>
         <button id="btnPause" disabled>⏸ 一時停止</button>
         <button id="btnReset">↺ リセット</button>
+        <button id="btnReplay" disabled title="停止中のエピソードを最初から 1 手ずつ見直す">⏪ リプレイ</button>
+      </div>
+
+      <div id="replayBar" class="replay" hidden>
+        <div class="replayHead">
+          <b>リプレイ</b><span id="replayMeta"></span>
+          <button id="rpExport" class="small">JSON 保存</button>
+          <button id="rpClose" class="small">閉じる</button>
+        </div>
+        <div class="track">
+          <input id="rpSeek" type="range" min="0" max="0" value="0" step="1">
+          <div id="rpMarks" class="marks"></div>
+        </div>
+        <div class="buttons">
+          <button id="rpFirst" title="最初へ">⏮</button>
+          <button id="rpPrev" title="1 手戻る (←)">◀</button>
+          <button id="rpPlay" class="primary" title="再生 / 停止 (Space)">▶ 再生</button>
+          <button id="rpNext" title="1 手進む (→)">▶</button>
+          <button id="rpLast" title="最後へ">⏭</button>
+          <select id="rpSpeed" title="再生速度">
+            <option value="400">0.5x</option>
+            <option value="200" selected>1x</option>
+            <option value="100">2x</option>
+            <option value="40">5x</option>
+          </select>
+        </div>
+        <div class="jump">
+          ジャンプ:
+          <select id="rpJumpKind">
+            <option value="deaths">ミスした手</option>
+            <option value="disagree">ヒューリスティックと不一致</option>
+            <option value="fallback">フォールバックした手</option>
+            <option value="lowconf">confidence 0.5 未満</option>
+            <option value="slow">レイテンシ 500ms 超</option>
+            <option value="error">API エラー / stale</option>
+          </select>
+          <button id="rpJumpPrev" class="small">◀ 前</button>
+          <button id="rpJumpNext" class="small">次 ▶</button>
+          <span id="rpJumpCount" class="muted"></span>
+        </div>
+        <p class="muted hint">盤面は「その手を打つ直前」。矢印は Jev の確率、白枠が実際に採用した手。←/→ で 1 手、Shift で 10 手。</p>
       </div>
       <p id="errorBox" class="error" hidden></p>
     </section>
@@ -65,20 +106,24 @@
         </label>
       </div>
 
-      <h2>計測 <small>（現在のエピソード）</small></h2>
+      <h2>計測 <small id="metricsScope">（現在のエピソード）</small></h2>
       <dl id="metrics" class="metrics"></dl>
 
-      <h2>直近の裁定</h2>
+      <h2>裁定インスペクタ</h2>
       <div id="decision" class="decision"><p class="muted">まだ裁定がありません。</p></div>
       <details>
-        <summary>Jev に送った state / questions</summary>
+        <summary>リクエスト全文 (state / questions)</summary>
         <pre id="requestDump"></pre>
       </details>
+      <details>
+        <summary>レスポンス全文 (answers / usage)</summary>
+        <pre id="responseDump"></pre>
+      </details>
 
-      <h2>エピソード結果 <button id="btnCsv" class="small">CSV コピー</button></h2>
+      <h2>エピソード結果 <button id="btnCsv" class="small">CSV コピー</button><button id="btnImport" class="small">リプレイ読込</button><input id="rpImport" type="file" accept="application/json,.json" hidden></h2>
       <div class="tableWrap">
         <table id="results">
-          <thead><tr><th>#</th><th>戦略</th><th>進行</th><th>G</th><th>seed</th><th>結果</th><th>score</th><th>クリア率</th><th>tick</th><th>裁定数</th><th>平均ms</th><th>p95ms</th><th>tokens</th><th>$</th><th>FB</th><th>stale</th></tr></thead>
+          <thead><tr><th></th><th>#</th><th>戦略</th><th>進行</th><th>G</th><th>seed</th><th>結果</th><th>score</th><th>クリア率</th><th>tick</th><th>裁定数</th><th>平均ms</th><th>p95ms</th><th>tokens</th><th>$</th><th>FB</th><th>stale</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
