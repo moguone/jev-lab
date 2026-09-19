@@ -151,3 +151,7 @@ table.inspect td[data-jev] { color: #c4b5fd; }
 table.inspect td[title] { cursor: help; text-decoration: underline dotted var(--muted); }
 table.inspect small { color: var(--muted); }
 pre.ascii { max-height: none; font-size: 10px; line-height: 1.15; }
+
+.grid .desc { line-height: 1.6; }
+optgroup { color: var(--muted); font-style: normal; }
+option { color: var(--text); }
