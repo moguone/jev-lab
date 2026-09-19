@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Twenty Questions × Jev</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Twenty Questions <span>動物を 1 つ思い浮かべてください。Jev の確率で当てます</span></h1>
+    <div class="badges">
+      <span id="matrixBadge" class="badge">…</span>
+      <span id="apiBadge" class="badge">…</span>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div id="card" class="card"></div>
+
+      <h2>これまでの質問 <small id="historyNote"></small></h2>
+      <ol id="history" class="history"></ol>
+
+      <div id="review" hidden>
+        <h2>答え合わせ <small>思い浮かべた動物について、あなたの回答と Jev の確率を並べる</small></h2>
+        <div class="row">
+          <select id="truthSelect"></select>
+          <input id="learnName" placeholder="候補に無い動物なら名前を入力（英語だと精度が上がる）" maxlength="60">
+          <button id="learnBtn">Jev に覚えさせる</button>
+        </div>
+        <p id="learnNote" class="note"></p>
+        <table id="reviewTable"></table>
+      </div>
+    </section>
+
+    <aside>
+      <h2>設定</h2>
+      <div class="row">
+        <label><input type="radio" name="mode" value="soft" checked> 確率をそのまま使う</label>
+        <label><input type="radio" name="mode" value="hard"> 0/1 に丸める</label>
+      </div>
+      <p class="note">途中で切り替えると、同じ回答のまま事後確率を計算し直す。</p>
+
+      <h2>候補の事後確率 <small id="entropyNote"></small></h2>
+      <div id="ranking" class="bars"></div>
+
+      <h2>次の質問の候補 <small>期待情報利得 (bit) の高い順</small></h2>
+      <table id="nextQuestions"></table>
+    </aside>
+  </main>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

@@ -10,6 +10,7 @@ TypeSafe AI の System One モデル **Jev** を、小さなアプリで実際�
 | アプリ | 内容 | 主な検証観点 |
 |---|---|---|
 | [maze-runner](apps/maze-runner/) | 迷路チェイスゲームの進行方向を Jev に裁定させて自動クリアを目指す | Choice 一括 vs Noul+Score fan-out、リアルタイム進行でのレイテンシの影響、confidence によるフォールバック |
+| [twenty-questions](apps/twenty-questions/) | 「20 の質問」形式で、プレイヤーが思い浮かべた動物を Jev の確率だけで当てる | Noul の確率を尤度としてベイズ合成、確率を 0/1 に丸めた場合との比較、キャリブレーション、Score による自由回答の解釈 |
 
 ![maze-runner](apps/maze-runner/docs/screenshot.jpg)
 

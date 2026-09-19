@@ -1,0 +1,12 @@
+{
+  "name": "twenty-questions",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.9" },
+  "scripts": {
+    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=.env server.mjs",
+    "build-matrix": "node --env-file-if-exists=../../.env --env-file-if-exists=.env scripts/build-matrix.mjs",
+    "sim": "node scripts/sim.mjs",
+    "calibration": "node scripts/calibration.mjs"
+  }
+}
